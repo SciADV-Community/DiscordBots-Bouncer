@@ -44,7 +44,7 @@ LOG_FOLDER = f'{APP_FOLDER_NAME}//Logs//'
 BUFFER_FOLDER = f'{APP_FOLDER_NAME}//Buffer//'
 ACTIVITY_FILE = os.path.join(APP_FOLDER_NAME, 'activity.json')
 DB_FILE = os.path.join(APP_FOLDER_NAME, f'{BOT_NAME}.db')
-BOT_VERSION = "1.5.8"
+BOT_VERSION = "1.5.9"
 
 sentry_sdk.init(
     dsn=os.getenv('SENTRY_DSN'),
@@ -1080,10 +1080,12 @@ class Owner():
 @tree.command(name = 'ping', description = 'Test, if the bot is responding.')
 @discord.app_commands.checks.cooldown(1, 30, key=lambda i: (i.user.id))
 async def self(interaction: discord.Interaction):
+    await interaction.response.defer(thinking=True)
+
     before = time.monotonic()
-    await interaction.response.send_message('Pong!')
+    await interaction.followup.send('Pong!')
     ping = (time.monotonic() - before) * 1000
-    await interaction.edit_original_response(content=f'Pong! \nCommand execution time: `{int(ping)}ms`\nPing to gateway: `{int(bot.latency * 1000)}ms`')
+    await interaction.edit_original_response(content=f'Pong! \nCommand execution time: `{Functions.safe_int(ping)}ms`\nPing to gateway: `{Functions.safe_int(bot.latency * 1000 if interaction.guild is None else bot.shards.get(interaction.guild.shard_id).latency * 1000)}ms`')
 
 
 
@@ -1091,61 +1093,65 @@ async def self(interaction: discord.Interaction):
 @tree.command(name = 'botinfo', description = 'Get information about the bot.')
 @discord.app_commands.checks.cooldown(1, 60, key=lambda i: (i.user.id))
 async def self(interaction: discord.Interaction):
-        member_count = sum(guild.member_count for guild in bot.guilds)
+    await interaction.response.defer(ephemeral = False)
 
-        embed = discord.Embed(
-            title=f"Information about {bot.user.name}",
-            color=discord.Color.blue()
-        )
-        embed.set_thumbnail(url=bot.user.avatar.url if bot.user.avatar else '')
+    member_count = sum(guild.member_count for guild in bot.guilds)
 
-        embed.add_field(name="Created at", value=bot.user.created_at.strftime("%d.%m.%Y, %H:%M:%S"), inline=True)
-        embed.add_field(name="Version", value=BOT_VERSION, inline=True)
-        embed.add_field(name="Uptime", value=str(datetime.timedelta(seconds=int((datetime.datetime.now() - start_time).total_seconds()))), inline=True)
+    embed = discord.Embed(
+        title=f"Information about {bot.user.name}",
+        color=discord.Color.blue()
+    )
+    embed.set_thumbnail(url=bot.user.avatar.url if bot.user.avatar else '')
 
-        embed.add_field(name="Owner", value=f"<@!{OWNERID}>", inline=True)
-        embed.add_field(name="\u200b", value="\u200b", inline=True)
-        embed.add_field(name="\u200b", value="\u200b", inline=True)
+    embed.add_field(name="Created at", value=bot.user.created_at.strftime("%d.%m.%Y, %H:%M:%S"), inline=True)
+    embed.add_field(name="Version", value=BOT_VERSION, inline=True)
+    embed.add_field(name="Uptime", value=str(datetime.timedelta(seconds=int((datetime.datetime.now() - start_time).total_seconds()))), inline=True)
 
-        embed.add_field(name="Server", value=f"{len(bot.guilds)}", inline=True)
-        embed.add_field(name="Member count", value=str(member_count), inline=True)
-        embed.add_field(name="\u200b", value="\u200b", inline=True)
+    embed.add_field(name="Owner", value=f"<@!{OWNERID}>", inline=True)
+    embed.add_field(name="\u200b", value="\u200b", inline=True)
+    embed.add_field(name="\u200b", value="\u200b", inline=True)
 
-        embed.add_field(name="Shards", value=f"{bot.shard_count}", inline=True)
-        embed.add_field(name="Shard ID", value=f"{interaction.guild.shard_id if interaction.guild else 'N/A'}", inline=True)
-        embed.add_field(name="\u200b", value="\u200b", inline=True)
+    embed.add_field(name="Server", value=f"{len(bot.guilds)}", inline=True)
+    embed.add_field(name="Member count", value=str(member_count), inline=True)
+    embed.add_field(name="\u200b", value="\u200b", inline=True)
 
-        embed.add_field(name="Python", value=f"{platform.python_version()}", inline=True)
-        embed.add_field(name="discord.py", value=f"{discord.__version__}", inline=True)
-        embed.add_field(name="Sentry", value=f"{sentry_sdk.consts.VERSION}", inline=True)
+    embed.add_field(name="Shards", value=f"{bot.shard_count}", inline=True)
+    embed.add_field(name="Shard ID", value=f"{interaction.guild.shard_id if interaction.guild else 'N/A'}", inline=True)
+    embed.add_field(name="\u200b", value="\u200b", inline=True)
 
-        embed.add_field(name="Repo", value=f"[GitHub](https://github.com/Serpensin/DiscordBots-Bouncer)", inline=True)
-        embed.add_field(name="Invite", value=f"[Invite me](https://discord.com/oauth2/authorize?client_id={bot.user.id})", inline=True)
-        embed.add_field(name="\u200b", value="\u200b", inline=True)
+    embed.add_field(name="Python", value=f"{platform.python_version()}", inline=True)
+    embed.add_field(name="discord.py", value=f"{discord.__version__}", inline=True)
+    embed.add_field(name="Sentry", value=f"{sentry_sdk.consts.VERSION}", inline=True)
 
-        if interaction.user.id == int(OWNERID):
-            # Add CPU and RAM usage
-            process = psutil.Process(os.getpid())
-            cpu_usage = process.cpu_percent()
-            ram_usage = round(process.memory_percent(), 2)
-            ram_real = round(process.memory_info().rss / (1024 ** 2), 2)
+    embed.add_field(name="Repo", value=f"[GitHub](https://github.com/Serpensin/DiscordBots-Bouncer)", inline=True)
+    embed.add_field(name="Invite", value=f"[Invite me](https://discord.com/oauth2/authorize?client_id={bot.user.id})", inline=True)
+    embed.add_field(name="\u200b", value="\u200b", inline=True)
 
-            embed.add_field(name="CPU", value=f"{cpu_usage}%", inline=True)
-            embed.add_field(name="RAM", value=f"{ram_usage}%", inline=True)
-            embed.add_field(name="RAM", value=f"{ram_real} MB", inline=True)
+    if interaction.user.id == int(OWNERID):
+        # Add CPU and RAM usage
+        process = psutil.Process(os.getpid())
+        cpu_usage = process.cpu_percent()
+        ram_usage = round(process.memory_percent(), 2)
+        ram_real = round(process.memory_info().rss / (1024 ** 2), 2)
 
-        await interaction.response.send_message(embed=embed)
+        embed.add_field(name="CPU", value=f"{cpu_usage}%", inline=True)
+        embed.add_field(name="RAM", value=f"{ram_usage}%", inline=True)
+        embed.add_field(name="RAM", value=f"{ram_real} MB", inline=True)
+
+    await interaction.followup.send(embed=embed)
 
 
 
 #Change Nickname
 @tree.command(name = 'change_nickname', description = 'Change the nickname of the bot.')
+@discord.app_commands.guild_only()
 @discord.app_commands.checks.cooldown(1, 60, key=lambda i: (i.guild_id))
 @discord.app_commands.checks.has_permissions(manage_nicknames = True)
 @discord.app_commands.describe(nick='New nickname for me.')
 async def self(interaction: discord.Interaction, nick: str):
+    await interaction.response.defer(ephemeral=True)
     await interaction.guild.me.edit(nick=nick)
-    await interaction.response.send_message(f'My new nickname is now **{nick}**.', ephemeral=True)
+    await interaction.followup.send(f'My new nickname is now **{nick}**.', ephemeral=True)
 
 
 
@@ -1154,17 +1160,19 @@ if support_available:
     @tree.command(name = 'support', description = 'Get invite to our support server.')
     @discord.app_commands.checks.cooldown(1, 60, key=lambda i: (i.user.id))
     async def self(interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral = True)
+
         if str(interaction.guild.id) != support_id:
-            await interaction.response.defer(ephemeral = True)
             await interaction.followup.send(await Functions.create_support_invite(interaction), ephemeral = True)
         else:
-            await interaction.response.send_message('You are already in our support server!', ephemeral = True)
+            await interaction.followup.send('You are already in our support server!', ephemeral = True)
 
 
 
 #Send pannel
 @tree.command(name = 'send_pannel', description = 'Send pannel to varification channel.')
-# @discord.app_commands.checks.cooldown(1, 60, key=lambda i: (i.guild_id))
+@discord.app_commands.guild_only()
+@discord.app_commands.checks.cooldown(2, 60, key=lambda i: (i.guild_id))
 @discord.app_commands.checks.has_permissions(manage_guild = True)
 async def self(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
@@ -1224,6 +1232,7 @@ async def self(interaction: discord.Interaction):
 
 #Protect server
 @tree.command(name = 'setup', description = 'Setup the server for the bot.')
+@discord.app_commands.guild_only()
 @discord.app_commands.checks.cooldown(1, 60, key=lambda i: (i.guild_id))
 @discord.app_commands.checks.has_permissions(manage_guild = True)
 @discord.app_commands.describe(verify_channel = 'Channel for the verification message.',
@@ -1247,59 +1256,64 @@ async def self(interaction: discord.Interaction):
     discord.app_commands.Choice(name = 'Nothing', value = '')
     ])
 async def self(interaction: discord.Interaction, verify_channel: discord.TextChannel, verify_role: discord.Role, log_channel: discord.TextChannel, timeout: int, action: str, ban_time: str = None, account_age: str = None):
+    await interaction.response.defer(ephemeral=True)
+
     guild_me = interaction.guild.me
     if action == 'kick' and not guild_me.guild_permissions.kick_members:
-        await interaction.response.send_message(f'I need the permission to {action} members.', ephemeral=True)
+        await interaction.followup.send(f'I need the permission to {action} members.', ephemeral=True)
         return
     elif action == 'ban' and not guild_me.guild_permissions.ban_members:
-        await interaction.response.send_message(f'I need the permission to {action} members.', ephemeral=True)
+        await interaction.followup.send(f'I need the permission to {action} members.', ephemeral=True)
         return
 
     if action == '':
         action = None
 
     if not verify_channel.permissions_for(guild_me).send_messages:
-        await interaction.response.send_message(f'I need the permission to send messages in {verify_channel.mention}.', ephemeral=True)
+        await interaction.followup.send(f'I need the permission to send messages in {verify_channel.mention}.', ephemeral=True)
         return
 
     if guild_me.top_role <= verify_role:
-        await interaction.response.send_message(f'My highest role needs to be above {verify_role.mention}, so I can assign it.', ephemeral=True)
+        await interaction.followup.send(f'My highest role needs to be above {verify_role.mention}, so I can assign it.', ephemeral=True)
         return
 
     bot_permissions = log_channel.permissions_for(guild_me)
     if not bot_permissions.view_channel:
-        await interaction.response.send_message(f'I need the permission to see {log_channel.mention}.', ephemeral=True)
+        await interaction.followup.send(f'I need the permission to see {log_channel.mention}.', ephemeral=True)
         return
     if not (bot_permissions.send_messages and bot_permissions.embed_links):
-        await interaction.response.send_message(f'I need the permission to send messages and embed links in {log_channel.mention}.', ephemeral=True)
+        await interaction.followup.send(f'I need the permission to send messages and embed links in {log_channel.mention}.', ephemeral=True)
         return
 
     if ban_time:
         ban_time = timeparse(ban_time)
         if ban_time is None:
-            await interaction.response.send_message('Invalid ban time. Please use the following format: `1d / 1h / 1m / 1s`.\nFor example: `1d2h3m4s`', ephemeral=True)
+            await interaction.followup.send('Invalid ban time. Please use the following format: `1d / 1h / 1m / 1s`.\nFor example: `1d2h3m4s`', ephemeral=True)
             return
 
     if account_age:
         if not guild_me.guild_permissions.kick_members:
-            await interaction.response.send_message(f'I need the permission to kick members.', ephemeral=True)
+            await interaction.followup.send(f'I need the permission to kick members.', ephemeral=True)
             return
         account_age = timeparse(account_age)
         if account_age is None:
-            await interaction.response.send_message('Invalid account age. Please use the following format: `1d / 1h / 1m / 1s`.\nFor example: `1d2h3m4s`', ephemeral=True)
+            await interaction.followup.send('Invalid account age. Please use the following format: `1d / 1h / 1m / 1s`.\nFor example: `1d2h3m4s`', ephemeral=True)
             return
 
     c.execute('INSERT OR REPLACE INTO servers VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (interaction.guild.id, verify_channel.id, verify_role.id, log_channel.id, timeout, action, ban_time, account_age))
     conn.commit()
-    await interaction.response.send_message(f'Setup completed.\nYou can now run `/send_panel`, to send the panel to <#{verify_channel.id}>.', ephemeral=True)
+    await interaction.followup.send(f'Setup completed.\nYou can now run `/send_panel`, to send the panel to <#{verify_channel.id}>.', ephemeral=True)
 
 
 
 #Show current settings
 @tree.command(name = 'settings', description = 'Show the current settings.')
+@discord.app_commands.guild_only()
 @discord.app_commands.checks.cooldown(1, 60, key=lambda i: (i.guild_id))
 @discord.app_commands.checks.has_permissions(manage_guild = True)
 async def self(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+
     c.execute('SELECT verify_channel, verify_role, log_channel, timeout, action, ban_time, account_age_min FROM servers WHERE guild_id = ?', (interaction.guild.id,))
     data = c.fetchone()
     if data:
@@ -1317,34 +1331,37 @@ async def self(interaction: discord.Interaction):
             ),
             color=0x2b63b0
         )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed, ephemeral=True)
     else:
-        await interaction.response.send_message('There are no settings for this server.\nUse `/setup` to set-up this server.', ephemeral=True)
+        await interaction.followup.send('There are no settings for this server.\nUse `/setup` to set-up this server.', ephemeral=True)
 
 
 
 #Verify all users
 @tree.command(name = 'verify-all', description = 'Verify all non-bot users on the server.')
+@discord.app_commands.guild_only()
 @discord.app_commands.checks.cooldown(1, 3600, key=lambda i: (i.guild_id))
 @discord.app_commands.checks.has_permissions(manage_guild = True)
 async def self(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+
     c.execute('SELECT verify_role FROM servers WHERE guild_id = ?', (interaction.guild.id,))
     data = c.fetchone()
     if not data:
-        await interaction.response.send_message('There are no settings for this server.\nUse `/setup` to set-up this server.', ephemeral=True)
+        await interaction.followup.send('There are no settings for this server.\nUse `/setup` to set-up this server.', ephemeral=True)
         return
 
     verify_role_id = data[0]
     if not verify_role_id:
-        await interaction.response.send_message('The verify role does not exist.', ephemeral=True)
+        await interaction.followup.send('The verify role does not exist.', ephemeral=True)
         return
 
     verify_role = interaction.guild.get_role(verify_role_id)
     if not verify_role:
-        await interaction.response.send_message('The verify role does not exist.', ephemeral=True)
+        await interaction.followup.send('The verify role does not exist.', ephemeral=True)
         return
 
-    await interaction.response.send_message('Verifying all users on the server. This can take a while.', ephemeral=True)
+    await interaction.followup.send('Verifying all users on the server. This can take a while.', ephemeral=True)
     await Functions.send_logging_message(interaction=interaction, kind='verify_mass_started')
 
     members_to_verify = [member for member in interaction.guild.members if not member.bot and verify_role not in member.roles]
@@ -1361,31 +1378,34 @@ async def self(interaction: discord.Interaction):
 
 # Verify a single user
 @tree.context_menu(name="Verify User")
+@discord.app_commands.guild_only()
 @discord.app_commands.checks.cooldown(1, 60, key=lambda i: (i.guild_id, i.data['target_id']))
 @discord.app_commands.checks.has_permissions(manage_roles=True)
 async def verify_user(interaction: discord.Interaction, member: discord.Member):
+    await interaction.response.defer(ephemeral=True)
+
     c.execute('SELECT verify_role FROM servers WHERE guild_id = ?', (interaction.guild.id,))
     verify_role_id = c.fetchone()
 
     if not verify_role_id:
-        await interaction.response.send_message('There are no settings for this server.\nUse `/setup` to set-up this server.', ephemeral=True)
+        await interaction.followup.send('There are no settings for this server.\nUse `/setup` to set-up this server.', ephemeral=True)
         return
 
     verify_role = interaction.guild.get_role(verify_role_id[0])
     if not verify_role:
-        await interaction.response.send_message('The verify role does not exist.', ephemeral=True)
+        await interaction.followup.send('The verify role does not exist.', ephemeral=True)
         return
 
     if member.bot or verify_role in member.roles:
-        await interaction.response.send_message(f'{member.mention} is already verified or is a bot.', ephemeral=True)
+        await interaction.followup.send(f'{member.mention} is already verified or is a bot.', ephemeral=True)
         return
 
     try:
         await member.add_roles(verify_role, reason=f'{interaction.user.name} verified user via context menu.')
-        await interaction.response.send_message(f'{member.mention} got verified by {interaction.user.mention}.', ephemeral=True)
+        await interaction.followup.send(f'{member.mention} got verified by {interaction.user.mention}.', ephemeral=True)
         await Functions.send_logging_message(interaction=interaction, kind='user_verify', member=member)
     except discord.Forbidden:
-        await interaction.response.send_message('I do not have permission to add roles to this user.', ephemeral=True)
+        await interaction.followup.send('I do not have permission to add roles to this user.', ephemeral=True)
 
 
 
