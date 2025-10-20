@@ -44,7 +44,7 @@ LOG_FOLDER = f'{APP_FOLDER_NAME}//Logs//'
 BUFFER_FOLDER = f'{APP_FOLDER_NAME}//Buffer//'
 ACTIVITY_FILE = os.path.join(APP_FOLDER_NAME, 'activity.json')
 DB_FILE = os.path.join(APP_FOLDER_NAME, f'{BOT_NAME}.db')
-BOT_VERSION = "1.5.9"
+BOT_VERSION = "1.5.10"
 
 sentry_sdk.init(
     dsn=os.getenv('SENTRY_DSN'),
@@ -1085,7 +1085,8 @@ async def self(interaction: discord.Interaction):
     before = time.monotonic()
     await interaction.followup.send('Pong!')
     ping = (time.monotonic() - before) * 1000
-    await interaction.edit_original_response(content=f'Pong! \nCommand execution time: `{Functions.safe_int(ping)}ms`\nPing to gateway: `{Functions.safe_int(bot.latency * 1000 if interaction.guild is None else bot.shards.get(interaction.guild.shard_id).latency * 1000)}ms`')
+    gateway_ping = bot.latency * 1000 if interaction.guild is None else bot.shards.get(interaction.guild.shard_id).latency * 1000
+    await interaction.edit_original_response(content=f'Pong! \nCommand execution time: `{ping:.2f}ms`\nPing to gateway: `{gateway_ping:.2f}ms`')
 
 
 
