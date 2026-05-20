@@ -29,6 +29,6 @@ LABEL maintainer="Discord: piko.piko.no.mi (970119359840284743)" \
       description="Discord Bot for automatically assigning users a role after they complete a captcha." \
       release=$BUILD_DATE \
       version="1.5.12" \
-      url="https://github.com/Serpensin/DiscordBots-Bouncer"
+      url="https://gitlab.com/Serpensin/DiscordBots-Bouncer"
 
 CMD ["python3", "main.py"]

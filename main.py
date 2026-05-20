@@ -93,7 +93,7 @@ class JSONValidator:
 
     default_content = {
         "activity_type": "Playing",
-        "activity_title": "Made by Serpensin: https://github.com/Serpensin",
+        "activity_title": "Made by Serpensin (https://gitlab.com/Serpensin)",
         "activity_url": "",
         "status": "online",
     }
@@ -1415,7 +1415,7 @@ async def self(interaction: discord.Interaction):
 
     embed.add_field(
         name="Repo",
-        value=f"[GitHub](https://github.com/Serpensin/DiscordBots-Bouncer)",
+        value=f"[GitLab](https://gitlab.com/Serpensin/DiscordBots-Bouncer)",
         inline=True,
     )
     embed.add_field(
