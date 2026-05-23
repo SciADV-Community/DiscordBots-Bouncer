@@ -93,7 +93,7 @@ class JSONValidator:
 
     default_content = {
         "activity_type": "Playing",
-        "activity_title": "Made by Serpensin (https://gitlab.com/Serpensin)",
+        "activity_title": "Writing to the Secret Diary",
         "activity_url": "",
         "status": "online",
     }
@@ -358,14 +358,14 @@ class aclient(discord.AutoShardedClient):
             elif button_id == "why":
                 try:
                     await interaction.response.send_message(
-                        f"This serever is protected by <@!{bot.user.id}> to prevent raids & malicious users.\n\nTo gain access to this server, you'll need to verify yourself by completing a captcha.\n\nYou don't need to connect your account for that.",
+                        f"This server is protected by <@!{bot.user.id}> to prevent raids & malicious users.\n\nTo gain access to this server, you'll need to verify yourself by completing a captcha.\n\nYou don't need to connect your account for that.",
                         view=WhyView(),
                         ephemeral=True,
                     )
                 except discord.NotFound:
                     try:
                         await interaction.followup.send(
-                            f"This serever is protected by <@!{bot.user.id}> to prevent raids & malicious users.\n\nTo gain access to this server, you'll need to verify yourself by completing a captcha.\n\nYou don't need to connect your account for that.",
+                            f"This server is protected by <@!{bot.user.id}> to prevent raids & malicious users.\n\nTo gain access to this server, you'll need to verify yourself by completing a captcha.\n\nYou don't need to connect your account for that.",
                             view=WhyView(),
                             ephemeral=True,
                         )
@@ -1471,8 +1471,8 @@ if support_available:
             )
 
 
-# Send pannel
-@tree.command(name="send_pannel", description="Send pannel to varification channel.")
+# Send panel
+@tree.command(name="send_panel", description="Send panel to verification channel.")
 @discord.app_commands.guild_only()
 @discord.app_commands.checks.cooldown(2, 60, key=lambda i: (i.guild_id))
 @discord.app_commands.checks.has_permissions(manage_guild=True)
@@ -1568,7 +1568,7 @@ async def self(interaction: discord.Interaction):
 @discord.app_commands.checks.has_permissions(manage_guild=True)
 @discord.app_commands.describe(
     verify_channel="Channel for the verification message.",
-    verify_role="Role assigned after successfull verification.",
+    verify_role="Role assigned after successful verification.",
     log_channel="Channel used to send logs.",
     timeout="After that timeframe the action gets executed.",
     action="Action that gets executed after timeout.",
